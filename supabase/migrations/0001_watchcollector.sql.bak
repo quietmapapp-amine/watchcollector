@@ -143,30 +143,25 @@ alter table share_token enable row level security;
 -- ===== RLS policies (valid form: SELECT/INSERT/UPDATE/DELETE separated) =====
 
 -- PROFILE
-drop policy if exists "profile_select_self" on profile;
-create policy "profile_select_self"
+create policy if not exists "profile_select_self"
   on profile for select
   using (auth.uid() = id);
 
-drop policy if exists "profile_insert_self" on profile;
-create policy "profile_insert_self"
+create policy if not exists "profile_insert_self"
   on profile for insert
   with check (auth.uid() = id);
 
-drop policy if exists "profile_update_self" on profile;
-create policy "profile_update_self"
+create policy if not exists "profile_update_self"
   on profile for update
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
-drop policy if exists "profile_delete_self" on profile;
-create policy "profile_delete_self"
+create policy if not exists "profile_delete_self"
   on profile for delete
   using (auth.uid() = id);
 
 -- WATCH_INSTANCE
-drop policy if exists "watch_select_visibility" on watch_instance;
-create policy "watch_select_visibility"
+create policy if not exists "watch_select_visibility"
   on watch_instance for select
   using (
     user_id = auth.uid()
@@ -183,25 +178,21 @@ create policy "watch_select_visibility"
     )
   );
 
-drop policy if exists "watch_insert_self" on watch_instance;
-create policy "watch_insert_self"
+create policy if not exists "watch_insert_self"
   on watch_instance for insert
   with check (user_id = auth.uid());
 
-drop policy if exists "watch_update_self" on watch_instance;
-create policy "watch_update_self"
+create policy if not exists "watch_update_self"
   on watch_instance for update
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
-drop policy if exists "watch_delete_self" on watch_instance;
-create policy "watch_delete_self"
+create policy if not exists "watch_delete_self"
   on watch_instance for delete
   using (user_id = auth.uid());
 
 -- PHOTO
-drop policy if exists "photo_select_visibility" on photo;
-create policy "photo_select_visibility"
+create policy if not exists "photo_select_visibility"
   on photo for select
   using (
     exists (
@@ -211,8 +202,7 @@ create policy "photo_select_visibility"
     )
   );
 
-drop policy if exists "photo_insert_self" on photo;
-create policy "photo_insert_self"
+create policy if not exists "photo_insert_self"
   on photo for insert
   with check (
     exists (
@@ -222,8 +212,7 @@ create policy "photo_insert_self"
     )
   );
 
-drop policy if exists "photo_update_self" on photo;
-create policy "photo_update_self"
+create policy if not exists "photo_update_self"
   on photo for update
   using (
     exists (
@@ -240,8 +229,7 @@ create policy "photo_update_self"
     )
   );
 
-drop policy if exists "photo_delete_self" on photo;
-create policy "photo_delete_self"
+create policy if not exists "photo_delete_self"
   on photo for delete
   using (
     exists (
@@ -252,8 +240,7 @@ create policy "photo_delete_self"
   );
 
 -- SERVICE_EVENT
-drop policy if exists "service_select_self" on service_event;
-create policy "service_select_self"
+create policy if not exists "service_select_self"
   on service_event for select
   using (
     exists (
@@ -263,8 +250,7 @@ create policy "service_select_self"
     )
   );
 
-drop policy if exists "service_insert_self" on service_event;
-create policy "service_insert_self"
+create policy if not exists "service_insert_self"
   on service_event for insert
   with check (
     exists (
@@ -274,8 +260,7 @@ create policy "service_insert_self"
     )
   );
 
-drop policy if exists "service_update_self" on service_event;
-create policy "service_update_self"
+create policy if not exists "service_update_self"
   on service_event for update
   using (
     exists (
@@ -292,8 +277,7 @@ create policy "service_update_self"
     )
   );
 
-drop policy if exists "service_delete_self" on service_event;
-create policy "service_delete_self"
+create policy if not exists "service_delete_self"
   on service_event for delete
   using (
     exists (
@@ -304,15 +288,13 @@ create policy "service_delete_self"
   );
 
 -- PRICE_ALERT
-drop policy if exists "alert_all_self" on price_alert;
-create policy "alert_all_self"
+create policy if not exists "alert_all_self"
   on price_alert for all
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
 -- SHARE_TOKEN (public read; validation par edge function)
-drop policy if exists "share_token_public_read" on share_token;
-create policy "share_token_public_read"
+create policy if not exists "share_token_public_read"
   on share_token for select
   using (true);
 

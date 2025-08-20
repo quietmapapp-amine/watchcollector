@@ -25,7 +25,10 @@
     "functions:deploy": "supabase functions deploy",
     "db:apply:full": "bash scripts/db_apply.sh && supabase functions deploy price-comparator && supabase functions deploy auction-calendar && supabase functions deploy investment-sim && supabase functions deploy collection-score && supabase functions deploy widget-highlight",
     "deploy:functions": "bash scripts/supabase_deploy_all.sh",
-    "deploy:all": "bash scripts/supabase_deploy_all.sh"
+    "deploy:all": "bash scripts/supabase_deploy_all.sh",
+    "scan:policies": "bash scripts/scan_policies.sh",
+    "fix:policies": "node scripts/patch_policies.mjs",
+    "fix:policies:write": "node scripts/patch_policies.mjs --write"
   },
   "dependencies": {
     "@react-native/assets-registry": "^0.80.2",
