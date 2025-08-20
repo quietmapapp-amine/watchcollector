@@ -22,9 +22,11 @@
     "db:push": "supabase db push",
     "db:seed": "supabase db seed --file supabase/seed/seed_badges_and_tags.sql",
     "db:migrate": "supabase db push",
-    "functions:deploy": "supabase functions deploy"
+    "functions:deploy": "supabase functions deploy",
+    "db:apply:full": "bash scripts/db_apply.sh && supabase functions deploy price-comparator && supabase functions deploy auction-calendar && supabase functions deploy investment-sim && supabase functions deploy collection-score && supabase functions deploy widget-highlight"
   },
   "dependencies": {
+    "@react-native/assets-registry": "^0.80.2",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/native-stack": "^6.9.17",
     "@shopify/flash-list": "^1.6.3",
@@ -37,6 +39,7 @@
     "expo-sharing": "~11.10.0",
     "expo-status-bar": "~1.11.1",
     "i18next": "^23.7.16",
+    "metro": "^0.82.5",
     "metro-cache": "^0.82.5",
     "nativewind": "^2.0.11",
     "posthog-react-native": "^3.4.3",
