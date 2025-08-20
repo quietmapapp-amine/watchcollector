@@ -28,7 +28,8 @@
     "deploy:all": "bash scripts/supabase_deploy_all.sh",
     "scan:policies": "bash scripts/scan_policies.sh",
     "fix:policies": "node scripts/patch_policies.mjs",
-    "fix:policies:write": "node scripts/patch_policies.mjs --write"
+    "fix:policies:write": "node scripts/patch_policies.mjs --write",
+    "db:reconcile": "bash scripts/reconcile_remote.sh"
   },
   "dependencies": {
     "@react-native/assets-registry": "^0.80.2",
