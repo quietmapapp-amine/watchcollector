@@ -1,9 +1,9 @@
--- 0001_watchcollector.sql (idempotent & valid RLS)
+-- 0001_watchcollector.sql — Core schema + valid RLS (idempotent)
 
 -- ===== Extensions =====
 create extension if not exists pgcrypto;
 
--- ===== Core dictionaries =====
+-- ===== Dictionaries =====
 create table if not exists brand (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -48,7 +48,7 @@ create table if not exists friendship (
   unique(user_id, friend_id)
 );
 
--- ===== User collection =====
+-- ===== Collection =====
 do $$ begin
   create type condition_t as enum ('new','excellent','very_good','good','fair','poor');
 exception when duplicate_object then null; end $$;
@@ -78,7 +78,7 @@ create table if not exists photo (
   created_at timestamptz default now()
 );
 
--- ===== Service / maintenance =====
+-- ===== Maintenance =====
 create table if not exists service_rule (
   id uuid primary key default gen_random_uuid(),
   brand_id uuid references brand(id) on delete cascade,
@@ -100,7 +100,7 @@ create table if not exists service_event (
   created_at timestamptz default now()
 );
 
--- ===== Pricing snapshots & alerts =====
+-- ===== Pricing & alerts =====
 create table if not exists price_snapshot (
   id uuid primary key default gen_random_uuid(),
   model_id uuid references model(id) on delete cascade,
@@ -122,7 +122,7 @@ create table if not exists price_alert (
   created_at timestamptz default now()
 );
 
--- ===== Share tokens (public read via edge function) =====
+-- ===== Share token =====
 create table if not exists share_token (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references profile(id) on delete cascade,
@@ -130,7 +130,7 @@ create table if not exists share_token (
   expires_at timestamptz
 );
 
--- ===== Enable RLS =====
+-- ===== RLS enable (safe) =====
 alter table if exists profile enable row level security;
 alter table if exists friendship enable row level security;
 alter table if exists watch_instance enable row level security;
@@ -139,7 +139,7 @@ alter table if exists service_event enable row level security;
 alter table if exists price_alert enable row level security;
 alter table if exists share_token enable row level security;
 
--- ===== RLS policies (DROP+CREATE to avoid IF NOT EXISTS) =====
+-- ===== RLS policies (DROP+CREATE; no IF NOT EXISTS) =====
 
 -- PROFILE
 drop policy if exists "profile_select_self" on profile;
@@ -190,27 +190,15 @@ create policy "photo_select_visibility" on photo for select using (
   )
 );
 create policy "photo_insert_self" on photo for insert with check (
-  exists (
-    select 1 from watch_instance w
-    where w.id = watch_instance_id and w.user_id = auth.uid()
-  )
+  exists (select 1 from watch_instance w where w.id = watch_instance_id and w.user_id = auth.uid())
 );
 create policy "photo_update_self" on photo for update using (
-  exists (
-    select 1 from watch_instance w
-    where w.id = photo.watch_instance_id and w.user_id = auth.uid()
-  )
+  exists (select 1 from watch_instance w where w.id = photo.watch_instance_id and w.user_id = auth.uid())
 ) with check (
-  exists (
-    select 1 from watch_instance w
-    where w.id = watch_instance_id and w.user_id = auth.uid()
-  )
+  exists (select 1 from watch_instance w where w.id = watch_instance_id and w.user_id = auth.uid())
 );
 create policy "photo_delete_self" on photo for delete using (
-  exists (
-    select 1 from watch_instance w
-    where w.id = photo.watch_instance_id and w.user_id = auth.uid()
-  )
+  exists (select 1 from watch_instance w where w.id = photo.watch_instance_id and w.user_id = auth.uid())
 );
 
 -- SERVICE_EVENT
@@ -238,11 +226,11 @@ create policy "service_delete_self" on service_event for delete using (
 drop policy if exists "alert_all_self" on price_alert;
 create policy "alert_all_self" on price_alert for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 
--- SHARE_TOKEN (public read; validation via edge function)
+-- SHARE_TOKEN (lecture publique; validation côté Edge Function)
 drop policy if exists "share_token_public_read" on share_token;
 create policy "share_token_public_read" on share_token for select using (true);
 
--- ===== Helpful indexes =====
+-- ===== Indexes =====
 create index if not exists idx_watch_user on watch_instance(user_id);
 create index if not exists idx_model_ref on model(reference);
 create index if not exists idx_price_snapshot_model_time on price_snapshot(model_id, captured_at desc);
