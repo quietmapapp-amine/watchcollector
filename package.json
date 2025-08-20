@@ -23,7 +23,9 @@
     "db:seed": "supabase db seed --file supabase/seed/seed_badges_and_tags.sql",
     "db:migrate": "supabase db push",
     "functions:deploy": "supabase functions deploy",
-    "db:apply:full": "bash scripts/db_apply.sh && supabase functions deploy price-comparator && supabase functions deploy auction-calendar && supabase functions deploy investment-sim && supabase functions deploy collection-score && supabase functions deploy widget-highlight"
+    "db:apply:full": "bash scripts/db_apply.sh && supabase functions deploy price-comparator && supabase functions deploy auction-calendar && supabase functions deploy investment-sim && supabase functions deploy collection-score && supabase functions deploy widget-highlight",
+    "deploy:functions": "bash scripts/supabase_deploy_all.sh",
+    "deploy:all": "bash scripts/supabase_deploy_all.sh"
   },
   "dependencies": {
     "@react-native/assets-registry": "^0.80.2",
