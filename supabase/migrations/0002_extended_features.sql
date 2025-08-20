@@ -1,7 +1,27 @@
 -- Extended features migration for Watch Collector
 
--- Add theme column to profile
-ALTER TABLE profile ADD COLUMN theme text DEFAULT 'atelier_horloger' CHECK (theme IN ('atelier_horloger', 'coffre_fort', 'catalogue_vintage'));
+-- Theme column: add if missing, then set default and check constraint safely
+ALTER TABLE profile
+  ADD COLUMN IF NOT EXISTS theme text;
+
+-- Ensure default (idempotent)
+ALTER TABLE profile
+  ALTER COLUMN theme SET DEFAULT 'atelier_horloger';
+
+-- Ensure allowed values constraint exists (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM   pg_constraint
+    WHERE  conrelid = 'public.profile'::regclass
+    AND    conname  = 'profile_theme_check'
+  ) THEN
+    ALTER TABLE profile
+      ADD CONSTRAINT profile_theme_check
+      CHECK (theme IN ('atelier_horloger', 'coffre_fort', 'catalogue_vintage'));
+  END IF;
+END$$;
 
 -- Badge system
 CREATE TABLE badge (
