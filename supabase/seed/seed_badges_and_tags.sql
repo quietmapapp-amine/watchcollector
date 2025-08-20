@@ -1,14 +1,15 @@
--- seed_badges_and_tags.sql
-
--- Badges (UPSERT by code)
-insert into badge(code, name, description, icon_url) values
-('ROLEX_ADDICT','Rolex Addict','Possède au moins 5 Rolex','/badges/rolex_addict.png'),
-('DIVER_KING','Diver King','Possède au moins 3 plongeuses','/badges/diver_king.png'),
-('VINTAGE_LOVER','Vintage Lover','Possède au moins 10 montres vintage','/badges/vintage_lover.png')
-on conflict (code) do update set
-  name=excluded.name,
-  description=excluded.description,
-  icon_url=excluded.icon_url;
+-- seed_badges_and_tags.sql (idempotent)
+insert into badge (code, name, rule, icon_url, description, category)
+values
+  ('ROLEX_ADDICT','Rolex Addict','count_brand>=5',null,'5 Rolex ou plus','collection'),
+  ('DIVER_KING','Diver King','count_tag:diver>=3',null,'3 plongeuses ou plus','achievement'),
+  ('VINTAGE_LOVER','Vintage Lover','count_tag:vintage>=3',null,'3 vintages ou plus','achievement')
+on conflict (code) do update
+  set name=excluded.name,
+      rule=excluded.rule,
+      icon_url=coalesce(excluded.icon_url, badge.icon_url),
+      description=excluded.description,
+      category=excluded.category;
 
 -- Example tags for known models (extend as needed)
 -- NOTE: Replace UUIDs with real model IDs from your catalog, or run after you have those.

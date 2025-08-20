@@ -1,5 +1,4 @@
--- 0001_watchcollector.sql (corrected)
--- Core schema for Watch Collector + valid RLS policies
+-- 0001_watchcollector.sql (idempotent & valid RLS)
 
 -- ===== Extensions =====
 create extension if not exists pgcrypto;
@@ -21,7 +20,7 @@ create table if not exists caliber (
 
 create table if not exists model (
   id uuid primary key default gen_random_uuid(),
-  brand_id uuid references brand(id) on delete cascade not null,
+  brand_id uuid not null references brand(id) on delete cascade,
   name text not null,
   reference text,
   caliber_id uuid references caliber(id),
@@ -123,7 +122,7 @@ create table if not exists price_alert (
   created_at timestamptz default now()
 );
 
--- ===== Share tokens (for public share links validated by edge function) =====
+-- ===== Share tokens (public read via edge function) =====
 create table if not exists share_token (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references profile(id) on delete cascade,
@@ -132,189 +131,116 @@ create table if not exists share_token (
 );
 
 -- ===== Enable RLS =====
-alter table profile enable row level security;
-alter table friendship enable row level security;
-alter table watch_instance enable row level security;
-alter table photo enable row level security;
-alter table service_event enable row level security;
-alter table price_alert enable row level security;
-alter table share_token enable row level security;
+alter table if exists profile enable row level security;
+alter table if exists friendship enable row level security;
+alter table if exists watch_instance enable row level security;
+alter table if exists photo enable row level security;
+alter table if exists service_event enable row level security;
+alter table if exists price_alert enable row level security;
+alter table if exists share_token enable row level security;
 
--- ===== RLS policies (valid form: SELECT/INSERT/UPDATE/DELETE separated) =====
+-- ===== RLS policies (DROP+CREATE to avoid IF NOT EXISTS) =====
 
 -- PROFILE
 drop policy if exists "profile_select_self" on profile;
-create policy "profile_select_self"
-  on profile for select
-  using (auth.uid() = id);
-
 drop policy if exists "profile_insert_self" on profile;
-create policy "profile_insert_self"
-  on profile for insert
-  with check (auth.uid() = id);
-
 drop policy if exists "profile_update_self" on profile;
-create policy "profile_update_self"
-  on profile for update
-  using (auth.uid() = id)
-  with check (auth.uid() = id);
-
 drop policy if exists "profile_delete_self" on profile;
-create policy "profile_delete_self"
-  on profile for delete
-  using (auth.uid() = id);
+
+create policy "profile_select_self" on profile for select using (auth.uid() = id);
+create policy "profile_insert_self" on profile for insert with check (auth.uid() = id);
+create policy "profile_update_self" on profile for update using (auth.uid() = id) with check (auth.uid() = id);
+create policy "profile_delete_self" on profile for delete using (auth.uid() = id);
 
 -- WATCH_INSTANCE
 drop policy if exists "watch_select_visibility" on watch_instance;
-create policy "watch_select_visibility"
-  on watch_instance for select
-  using (
-    user_id = auth.uid()
-    or visibility = 'public'
-    or (
-      visibility = 'friends' and exists (
-        select 1 from friendship f
-        where f.status='accepted'
-          and (
-            (f.user_id = user_id and f.friend_id = auth.uid())
-            or (f.friend_id = user_id and f.user_id = auth.uid())
-          )
-      )
-    )
-  );
-
 drop policy if exists "watch_insert_self" on watch_instance;
-create policy "watch_insert_self"
-  on watch_instance for insert
-  with check (user_id = auth.uid());
-
 drop policy if exists "watch_update_self" on watch_instance;
-create policy "watch_update_self"
-  on watch_instance for update
-  using (user_id = auth.uid())
-  with check (user_id = auth.uid());
-
 drop policy if exists "watch_delete_self" on watch_instance;
-create policy "watch_delete_self"
-  on watch_instance for delete
-  using (user_id = auth.uid());
+
+create policy "watch_select_visibility" on watch_instance for select using (
+  user_id = auth.uid()
+  or visibility = 'public'
+  or (
+    visibility = 'friends' and exists (
+      select 1 from friendship f
+      where f.status='accepted'
+        and (
+          (f.user_id = user_id and f.friend_id = auth.uid())
+          or (f.friend_id = user_id and f.user_id = auth.uid())
+        )
+    )
+  )
+);
+create policy "watch_insert_self" on watch_instance for insert with check (user_id = auth.uid());
+create policy "watch_update_self" on watch_instance for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "watch_delete_self" on watch_instance for delete using (user_id = auth.uid());
 
 -- PHOTO
 drop policy if exists "photo_select_visibility" on photo;
-create policy "photo_select_visibility"
-  on photo for select
-  using (
-    exists (
-      select 1 from watch_instance w
-      where w.id = photo.watch_instance_id
-        and (w.user_id = auth.uid() or w.visibility in ('public','friends'))
-    )
-  );
-
 drop policy if exists "photo_insert_self" on photo;
-create policy "photo_insert_self"
-  on photo for insert
-  with check (
-    exists (
-      select 1 from watch_instance w
-      where w.id = watch_instance_id
-        and w.user_id = auth.uid()
-    )
-  );
-
 drop policy if exists "photo_update_self" on photo;
-create policy "photo_update_self"
-  on photo for update
-  using (
-    exists (
-      select 1 from watch_instance w
-      where w.id = photo.watch_instance_id
-        and w.user_id = auth.uid()
-    )
-  )
-  with check (
-    exists (
-      select 1 from watch_instance w
-      where w.id = watch_instance_id
-        and w.user_id = auth.uid()
-    )
-  );
-
 drop policy if exists "photo_delete_self" on photo;
-create policy "photo_delete_self"
-  on photo for delete
-  using (
-    exists (
-      select 1 from watch_instance w
-      where w.id = photo.watch_instance_id
-        and w.user_id = auth.uid()
-    )
-  );
+
+create policy "photo_select_visibility" on photo for select using (
+  exists (
+    select 1 from watch_instance w
+    where w.id = photo.watch_instance_id
+      and (w.user_id = auth.uid() or w.visibility in ('public','friends'))
+  )
+);
+create policy "photo_insert_self" on photo for insert with check (
+  exists (
+    select 1 from watch_instance w
+    where w.id = watch_instance_id and w.user_id = auth.uid()
+  )
+);
+create policy "photo_update_self" on photo for update using (
+  exists (
+    select 1 from watch_instance w
+    where w.id = photo.watch_instance_id and w.user_id = auth.uid()
+  )
+) with check (
+  exists (
+    select 1 from watch_instance w
+    where w.id = watch_instance_id and w.user_id = auth.uid()
+  )
+);
+create policy "photo_delete_self" on photo for delete using (
+  exists (
+    select 1 from watch_instance w
+    where w.id = photo.watch_instance_id and w.user_id = auth.uid()
+  )
+);
 
 -- SERVICE_EVENT
 drop policy if exists "service_select_self" on service_event;
-create policy "service_select_self"
-  on service_event for select
-  using (
-    exists (
-      select 1 from watch_instance w
-      where w.id = service_event.watch_instance_id
-        and w.user_id = auth.uid()
-    )
-  );
-
 drop policy if exists "service_insert_self" on service_event;
-create policy "service_insert_self"
-  on service_event for insert
-  with check (
-    exists (
-      select 1 from watch_instance w
-      where w.id = watch_instance_id
-        and w.user_id = auth.uid()
-    )
-  );
-
 drop policy if exists "service_update_self" on service_event;
-create policy "service_update_self"
-  on service_event for update
-  using (
-    exists (
-      select 1 from watch_instance w
-      where w.id = service_event.watch_instance_id
-        and w.user_id = auth.uid()
-    )
-  )
-  with check (
-    exists (
-      select 1 from watch_instance w
-      where w.id = watch_instance_id
-        and w.user_id = auth.uid()
-    )
-  );
-
 drop policy if exists "service_delete_self" on service_event;
-create policy "service_delete_self"
-  on service_event for delete
-  using (
-    exists (
-      select 1 from watch_instance w
-      where w.id = service_event.watch_instance_id
-        and w.user_id = auth.uid()
-    )
-  );
+
+create policy "service_select_self" on service_event for select using (
+  exists (select 1 from watch_instance w where w.id = service_event.watch_instance_id and w.user_id = auth.uid())
+);
+create policy "service_insert_self" on service_event for insert with check (
+  exists (select 1 from watch_instance w where w.id = watch_instance_id and w.user_id = auth.uid())
+);
+create policy "service_update_self" on service_event for update using (
+  exists (select 1 from watch_instance w where w.id = service_event.watch_instance_id and w.user_id = auth.uid())
+) with check (
+  exists (select 1 from watch_instance w where w.id = watch_instance_id and w.user_id = auth.uid())
+);
+create policy "service_delete_self" on service_event for delete using (
+  exists (select 1 from watch_instance w where w.id = service_event.watch_instance_id and w.user_id = auth.uid())
+);
 
 -- PRICE_ALERT
 drop policy if exists "alert_all_self" on price_alert;
-create policy "alert_all_self"
-  on price_alert for all
-  using (user_id = auth.uid())
-  with check (user_id = auth.uid());
+create policy "alert_all_self" on price_alert for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 
--- SHARE_TOKEN (public read; validation par edge function)
+-- SHARE_TOKEN (public read; validation via edge function)
 drop policy if exists "share_token_public_read" on share_token;
-create policy "share_token_public_read"
-  on share_token for select
-  using (true);
+create policy "share_token_public_read" on share_token for select using (true);
 
 -- ===== Helpful indexes =====
 create index if not exists idx_watch_user on watch_instance(user_id);
