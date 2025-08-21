@@ -1,41 +1,4 @@
 {
-  "expo": {
-    "name": "Watch Collector",
-    "slug": "watch-collector",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0B1220"
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.watchcollector.app"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0B1220"
-      },
-      "package": "com.watchcollector.app"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "scheme": "watchcollector",
-    "plugins": [
-      "expo-secure-store"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "7d9f3638-27e4-466a-ad72-f65a84e85f07"
-      }
-    }
-  }
+  "name": "WatchCollector",
+  "displayName": "WatchCollector"
 }

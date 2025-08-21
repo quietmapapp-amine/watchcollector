@@ -51,3 +51,11 @@ If automated fixes fail:
 4. Verify bundle identifier
 5. Clean build folder
 6. Retry `make release`
+
+## Expo Script Disabled
+
+We've bypassed Expo's configure script and disabled user script sandboxing for the app target to avoid Xcode 15's "User Script Sandboxing" errors.
+
+**If you later reintroduce Expo:**
+- Revert the no-op shell script in `ios/WatchCollector.xcodeproj/project.pbxproj`
+- Set `ENABLE_USER_SCRIPT_SANDBOXING` back to `YES` in both Debug and Release configurations

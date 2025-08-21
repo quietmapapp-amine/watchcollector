@@ -39,7 +39,12 @@ module.exports = {
         use: {
           loader: "babel-loader",
           options: {
-            configFile: path.resolve(__dirname, ".babelrc")
+            presets: [
+              ["@babel/preset-env", { targets: "defaults" }],
+              ["@babel/preset-react", { runtime: "automatic" }],
+              "@babel/preset-typescript"
+            ],
+            plugins: ["@babel/plugin-transform-runtime"]
           }
         }
       },
