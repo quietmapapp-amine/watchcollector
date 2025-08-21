@@ -1,68 +1,143 @@
 default_platform(:ios)
 
+def resolve_paths_abs
+  ws = ENV["XCWORKSPACE_PATH"]
+  pj = ENV["XCODEPROJ_PATH"]
+
+  # Autodetect if missing or invalid using absolute paths
+  unless ws && File.exist?(ws)
+    ws_pattern = File.expand_path("../ios/*.xcworkspace", File.dirname(__FILE__))
+    UI.message("Looking for workspaces with pattern: #{ws_pattern}")
+    ws = Dir[ws_pattern].first
+    UI.message("Found workspace: #{ws || 'none'}")
+  end
+  
+  unless pj && File.exist?(pj)
+    pj_pattern = File.expand_path("../ios/*.xcodeproj", File.dirname(__FILE__))
+    UI.message("Looking for projects with pattern: #{pj_pattern}")
+    pj = Dir[pj_pattern].first
+    UI.message("Found project: #{pj || 'none'}")
+  end
+
+  ws_abs = ws && File.exist?(ws) ? File.expand_path(ws) : nil
+  pj_abs = pj && File.exist?(pj) ? File.expand_path(pj) : nil
+  [ws_abs, pj_abs]
+end
+
+def list_schemes_from(ws_abs, pj_abs)
+  require "json"
+  raise "No workspace/project found under ios/" unless ws_abs || pj_abs
+  json = nil
+  ios_dir = File.expand_path("../ios", File.dirname(__FILE__))
+  Dir.chdir(ios_dir) do
+    if ws_abs
+      json = JSON.parse(sh("set -o pipefail && xcodebuild -list -json -workspace '#{File.basename(ws_abs)}'"))
+    else
+      json = JSON.parse(sh("set -o pipefail && xcodebuild -list -json -project '#{File.basename(pj_abs)}'"))
+    end
+  end
+  UI.message("Parsed JSON keys: #{json.keys.join(', ')}")
+  
+  # Handle nested structure for workspace vs project
+  if ws_abs
+    schemes = json["workspace"]["schemes"] || []
+  else
+    schemes = json["project"]["schemes"] || []
+  end
+  
+  UI.message("Extracted schemes count: #{schemes.length}")
+  UI.message("First few schemes: #{schemes.first(5).join(', ')}")
+  schemes
+end
+
+def resolve_scheme(ws_abs, pj_abs, prefer = ENV["SCHEME"])
+  schemes = list_schemes_from(ws_abs, pj_abs)
+  UI.message("Available schemes: #{schemes.join(', ')}")
+  UI.user_error!("No scheme detected via xcodebuild") if schemes.empty?
+  
+  if prefer && !prefer.empty?
+    found = schemes.find { |s| s.downcase == prefer.downcase }
+    UI.message("Looking for preferred scheme '#{prefer}', found: #{found || 'none'}")
+    return found if found
+  end
+  
+  # Look for the main app scheme first
+  main_scheme = schemes.find { |s| s.downcase == "watchcollector" }
+  UI.message("Looking for main scheme 'watchcollector', found: #{main_scheme || 'none'}")
+  return main_scheme if main_scheme
+  
+  # Fallback to non-pods schemes
+  non_pods_scheme = schemes.find { |s| !s.downcase.include?("pods") }
+  UI.message("Looking for non-pods scheme, found: #{non_pods_scheme || 'none'}")
+  fallback_scheme = non_pods_scheme || schemes.first
+  UI.message("Final fallback scheme: #{fallback_scheme || 'none'}")
+  fallback_scheme
+end
+
+def ensure_api_key!
+  path = ENV["ASC_KEY_FILE"] || ".private/appstoreconnect_api_key.p8"
+  UI.user_error!("Missing ASC key file: #{path}") unless File.exist?(path) && !File.zero?(path)
+end
+
 platform :ios do
-  before_all do
-    UI.important("Starting iOS pipeline for WatchCollector")
-  end
-
-  desc "Install CocoaPods"
+  desc "Install CocoaPods (only if ios/Podfile exists)"
   lane :pods do
-    cocoapods(
-      clean_install: true,
-      repo_update: true,
-      silent: false
-    )
+    podfile_ios = "ios/Podfile"
+    if File.exist?(podfile_ios)
+      cocoapods(
+        podfile: podfile_ios,
+        project_directory: "ios",
+        clean_install: true,
+        repo_update: true
+      )
+    else
+      UI.message("No ios/Podfile found. Skipping CocoaPods.")
+    end
   end
 
-  desc "Bump build number (CURRENT_PROJECT_VERSION) automatically"
+  desc "Bump build number"
   lane :bump_build do
-    ensure_xcode_version
-    increment_build_number(
-      xcodeproj: ENV["XCODEPROJ_PATH"],
-      build_number: Time.now.strftime("%Y%m%d%H%M")
-    )
+    increment_build_number(build_number: Time.now.strftime("%Y%m%d%H%M"))
   end
 
-  desc "Build .ipa for App Store/TestFlight"
+  desc "Build .ipa"
   lane :build do |options|
-    scheme = options[:scheme] || ENV["SCHEME"] || "WatchCollector"
-    workspace = ENV["XCWORKSPACE_PATH"]
-    project = ENV["XCODEPROJ_PATH"]
+    ws_abs, pj_abs = resolve_paths_abs
+    UI.message("Resolved paths -> workspace: #{ws_abs || '-'} | project: #{pj_abs || '-'}")
+    UI.user_error!("Neither workspace nor project found under ios/") unless ws_abs || pj_abs
+
+    scheme = options[:scheme] || resolve_scheme(ws_abs, pj_abs, ENV["SCHEME"])
+    UI.message("Using scheme: #{scheme}")
 
     gym(
       scheme: scheme,
-      workspace: workspace,
-      project: project,
+      workspace: ws_abs,         # pass absolute path or nil
+      project:  ws_abs ? nil : pj_abs,
+      sdk: "iphoneos",
       export_method: "app-store",
-      include_bitcode: false,
       include_symbols: true,
+      include_bitcode: false,
       clean: true,
       output_directory: "build",
       output_name: "WatchCollector.ipa",
       configuration: "Release",
-      silent: false
+      xcargs: "CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM=#{ENV['APPLE_TEAM_ID']} PRODUCT_BUNDLE_IDENTIFIER=#{ENV['APP_IDENTIFIER']}"
     )
   end
 
-  desc "Upload build to TestFlight using App Store Connect API key"
+  desc "Upload to TestFlight"
   lane :upload_testflight do
+    ensure_api_key!
     api_key = app_store_connect_api_key(
       key_id: ENV["ASC_KEY_ID"],
       issuer_id: ENV["ASC_ISSUER_ID"],
-      key_filepath: ENV["ASC_KEY_FILE"],
-      duration: 1200,
-      in_house: false
+      key_filepath: ENV["ASC_KEY_FILE"]
     )
-
-    pilot(
-      api_key: api_key,
-      skip_waiting_for_build_processing: false,
-      distribute_external: false,   # set true if you want external testers
-      changelog: ENV["TF_CHANGELOG"] || "Initial TestFlight build"
-    )
+    pilot(api_key: api_key, skip_waiting_for_build_processing: false, distribute_external: false,
+          changelog: ENV["TF_CHANGELOG"] || "Internal build")
   end
 
-  desc "Full pipeline: pods -> bump_build -> build -> upload_testflight"
+  desc "Full pipeline"
   lane :release do
     pods
     bump_build

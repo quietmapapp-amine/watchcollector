@@ -18,8 +18,14 @@ npm install
 ## 🌐 **Lancement du Preview Web**
 
 ```bash
-# Démarrer le serveur de développement
+# Démarrer le serveur de développement (avec fallback)
 npm run web
+
+# Démarrer avec la vraie UI (sans mock data)
+npm run web:clean
+
+# Démarrer avec la vraie UI + mock data activé
+npm run web:full
 
 # Le navigateur s'ouvrira automatiquement sur http://localhost:5173
 ```
@@ -51,6 +57,13 @@ web/
 - **Port** : 5173
 - **Alias** : `react-native` → `react-native-web`
 - **Extensions** : Support .tsx, .ts, .jsx, .js
+- **Shims** : Modules natifs mappés vers des stubs sécurisés
+
+### **Shims et Stubs**
+- **AsyncStorage** : Store en mémoire pour le web
+- **Maps** : Composant stub pour les cartes
+- **Modules natifs** : Proxies no-op pour éviter les crashes
+- **Configuration** : Alias automatiques dans webpack
 
 ### **Babel**
 - **Presets** : Expo, Env, React, TypeScript
@@ -69,6 +82,13 @@ Le système détecte automatiquement :
 - ❌ **Pas de support** pour les modules natifs iOS/Android
 - ❌ **Pas de support** pour les APIs spécifiques aux plateformes
 - ✅ **Support** pour react-native-web équivalents
+- ✅ **Shims** : Stubs sécurisés pour éviter les crashes
+
+### **Scripts Disponibles**
+- **`npm run web`** : Mode fallback (App.web.tsx si App.tsx échoue)
+- **`npm run web:clean`** : Vraie UI sans mock data (peut échouer si APIs non disponibles)
+- **`npm run web:full`** : Vraie UI avec mock data activé (recommandé pour le développement)
+- **`npm run web:build`** : Build de production
 
 ### **Validation UI**
 - ✅ **Composants React Native** : Rendu en HTML/CSS

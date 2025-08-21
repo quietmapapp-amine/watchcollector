@@ -14,7 +14,14 @@ module.exports = {
   resolve: {
     extensions: [".web.tsx",".web.ts",".web.jsx",".web.js",".tsx",".ts",".jsx",".js",".json"],
     alias: {
-      "react-native$": "react-native-web"
+      "react-native$": "react-native-web",
+      // Map popular native libs to safe web stubs
+      "@react-native-async-storage/async-storage": path.resolve(__dirname, "shims/AsyncStorage.web.ts"),
+      "react-native-maps": path.resolve(__dirname, "shims/MapStub.web.tsx"),
+      "@rnmapbox/maps": path.resolve(__dirname, "shims/MapStub.web.tsx"),
+      "react-native-permissions": path.resolve(__dirname, "shims/NativeStub.web.ts"),
+      "react-native-device-info": path.resolve(__dirname, "shims/NativeStub.web.ts"),
+      "react-native-keychain": path.resolve(__dirname, "shims/NativeStub.web.ts")
     },
     fallback: {
       "crypto": false,
