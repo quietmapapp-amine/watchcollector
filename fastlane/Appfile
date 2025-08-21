@@ -1,0 +1,5 @@
+# Fill the placeholders in .env.* files; Fastlane reads them at runtime.
+app_identifier(ENV["APP_IDENTIFIER"] || "com.example.watchcollector")
+apple_id(ENV["APPLE_ID"] || "your-apple-id@example.com")
+itc_team_id(ENV["ASC_ISSUER_ID"] || "")    # Not strictly used here; we rely on API key auth.
+team_id(ENV["APPLE_TEAM_ID"] || "XXXXXXXXXX")

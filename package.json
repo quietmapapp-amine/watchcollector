@@ -29,7 +29,12 @@
     "scan:policies": "bash scripts/scan_policies.sh",
     "fix:policies": "node scripts/patch_policies.mjs",
     "fix:policies:write": "node scripts/patch_policies.mjs --write",
-    "db:reconcile": "bash scripts/reconcile_remote.sh"
+    "db:reconcile": "bash scripts/reconcile_remote.sh",
+    "ios:pods": "cd ios && bundle exec pod install",
+    "ios:bump": "bundle exec fastlane ios bump_build",
+    "ios:build": "bundle exec fastlane ios build",
+    "ios:upload": "bundle exec fastlane ios upload_testflight",
+    "ios:release": "bundle exec fastlane ios release"
   },
   "dependencies": {
     "@react-native/assets-registry": "^0.80.2",
