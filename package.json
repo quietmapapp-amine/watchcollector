@@ -6,7 +6,7 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
+    "web": "webpack serve --config web/webpack.config.js",
     "lint": "eslint . --config eslint.config.js",
     "lint:fix": "eslint . --fix --config eslint.config.js",
     "format": "prettier --write .",
@@ -34,7 +34,8 @@
     "ios:bump": "bundle exec fastlane ios bump_build",
     "ios:build": "bundle exec fastlane ios build",
     "ios:upload": "bundle exec fastlane ios upload_testflight",
-    "ios:release": "bundle exec fastlane ios release"
+    "ios:release": "bundle exec fastlane ios release",
+    "web:build": "webpack --config web/webpack.config.js --mode production"
   },
   "dependencies": {
     "@react-native/assets-registry": "^0.80.2",
@@ -55,17 +56,24 @@
     "nativewind": "^2.0.11",
     "posthog-react-native": "^3.4.3",
     "react": "18.2.0",
+    "react-dom": "^18.3.1",
     "react-hook-form": "^7.49.3",
     "react-i18next": "^14.0.1",
     "react-native": "0.73.6",
     "react-native-safe-area-context": "4.8.2",
     "react-native-screens": "~3.29.0",
+    "react-native-web": "^0.19.13",
     "tailwindcss": "^3.4.1",
     "zod": "^3.22.4",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
+    "@babel/plugin-transform-runtime": "^7.28.3",
+    "@babel/preset-env": "^7.28.3",
+    "@babel/preset-react": "^7.27.1",
+    "@babel/preset-typescript": "^7.27.1",
+    "@babel/runtime": "^7.28.3",
     "@react-native/eslint-config": "^0.73.2",
     "@react-native/metro-config": "^0.73.5",
     "@react-native/typescript-config": "^0.73.1",
@@ -74,14 +82,23 @@
     "@types/react-native": "~0.73.0",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
+    "ajv": "^8.17.1",
+    "babel-loader": "^9.2.1",
+    "css-loader": "^7.1.2",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react-hooks": "^4.6.2",
+    "html-webpack-plugin": "^5.6.4",
     "husky": "^9.0.11",
     "jest": "^29.7.0",
     "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
-    "typescript": "~5.3.0"
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.2",
+    "typescript": "~5.3.0",
+    "webpack": "^5.101.3",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.2.2"
   },
   "private": true
 }
